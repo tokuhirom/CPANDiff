@@ -47,10 +47,10 @@ sub request {
     $self->ua->request($request);
 }
 
-sub get_filelist {
+sub get_file_list {
     args my $self,
          my $release,
-         my $version,
+         my $author,
          ;
 
     my $res = $self->request(
@@ -60,8 +60,9 @@ sub get_filelist {
                     query  => { match_all => {} },
                     filter => {
                         and => [
-                            { term => { release   => "Moose-2.0002" } },
-                            { term => { author    => "DOY" } },
+                            { term => { release   => $release } },
+                            { term => { author    => $author } },
+                            { term => { directory => 0 } },
                         ]
                     }
                 }
@@ -70,7 +71,24 @@ sub get_filelist {
             size   => 2000,
         }
     );
-    my @paths = map { $_->{fields}->{path} } @{$dat->{hits}->{hits}};
+    $res->is_success or die "Cannot get list of files for '$release' by '$author' : " . $res->status_line;
+    my $dat = decode_json($res->decoded_content);
+    my @paths = grep { $_ ne '' } map { $_->{fields}->{path} } @{$dat->{hits}->{hits}};
+    return @paths;
+}
+
+sub get_source {
+    args my $self,
+         my $release,
+         my $author,
+         my $path,
+         ;
+
+    # http://api.metacpan.org/source/OVID/Text-Diff-1.41/README
+    my $uri = "http://api.metacpan.org/source/$author/$release/$path";
+    my $res = $self->ua->get($uri);
+    $res->is_success or die "Cannot get $uri: " . $res->status_line;
+    return $res->decoded_content;
 }
 
 1;

@@ -38,14 +38,6 @@ use Text::Xslate;
 use HTTP::Session::Store::File;
 __PACKAGE__->load_plugins(
     'Web::FillInFormLite',
-    'Web::NoCache', # do not cache the dynamic content by default
-    'Web::CSRFDefender',
-    'Web::HTTPSession' => {
-        state => 'Cookie',
-        store => HTTP::Session::Store::File->new(
-            dir => File::Spec->tmpdir(),
-        )
-    },
 );
 
 # for your security
@@ -53,14 +45,6 @@ __PACKAGE__->add_trigger(
     AFTER_DISPATCH => sub {
         my ( $c, $res ) = @_;
         $res->header( 'X-Content-Type-Options' => 'nosniff' );
-    },
-);
-
-__PACKAGE__->add_trigger(
-    BEFORE_DISPATCH => sub {
-        my ( $c ) = @_;
-        # ...
-        return;
     },
 );
 

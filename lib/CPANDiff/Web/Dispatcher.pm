@@ -3,31 +3,33 @@ use strict;
 use warnings;
 use Amon2::Web::Dispatcher::Lite;
 use AnyEvent::HTTP;
+use CPANDiff::Diff;
 
 any '/' => sub {
     my ($c) = @_;
-    $c->render('index.tt');
-};
+    
+    my @keys = qw(src_author src_release dst_author dst_release);
+    if ((grep { $c->req->param($_) } @keys) == @keys) { # form filled
+        # fill current data
+        $c->fillin_form($c->req);
 
-any '/api/get_filelist' => sub {
-    my $c = shift;
+        my $diff = CPANDiff::Diff->new(
+            map { $_ => scalar($c->req->param($_)) } @keys
+        );
 
-};
+        return $c->render('index.tt', { diff => $diff });
+    } else {
+        # sample input data
+        $c->fillin_form(+{
+            src_author  => 'MIYAGAWA',
+            src_release => 'RPC-XML-Parser-LibXML-0.04',
 
-sub create_request {
-    my ( $self, $path, $search ) = @_;
+            dst_author  => 'TOKUHIROM',
+            dst_release => 'RPC-XML-Parser-LibXML-0.07',
+        });
 
-    my $endpoint = 'http://api.beta.metacpan.org/';
-    my $url      = $endpoint . $path;
-
-    my $request = HTTP::Request->new( 'POST', $url );
-    if ($search) {
-        $request->content( encode_json($search) );
-        $request->content_type('application/json');
+        return $c->render('index.tt');
     }
-    $request->content_length( length $request->content );
-    warn $request->as_string;
-    return $request;
-}
+};
 
 1;
